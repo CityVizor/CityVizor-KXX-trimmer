@@ -1,0 +1,95 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <base href="/kxx-cleaner/">
+    
+    <title>KXX Cleaner :: cityvizor.cz</title>
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="stylesheet" href="assets/css/style.css">
+    <script src="assets/js/kxxcleaner.js"></script>
+
+    <!-- jQuery 3.3.1 -->
+    <script src="assets/lib/jquery/jquery-3.3.1.min.js"></script>
+
+    <!-- Bootstrap 4.1.0 -->
+    <link rel="stylesheet" href="assets/lib/bootstrap/css/bootstrap.min.css">
+    <script src="assets/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+    <!-- KXX trimmer -->
+    <script type="text/javascript">
+
+
+      $(document).ready(function(){
+
+        var kxxCleaner = new KXXCleaner();
+
+        var form = $("form").first();
+
+        form.submit(function(e){
+          
+          e.preventDefault();
+          
+          var file = $("#fileInput")[0].files[0];
+          
+          kxxCleaner.clean(file,function(data){
+            console.log(data.length);
+
+            console.log("downloading..");
+
+            let element = document.createElement('a');
+
+            let blob = new Blob([data], {type:'text/plain;charset:WIN-1250',encoding:"win-1250"});
+            let url = window.URL.createObjectURL(blob);
+
+            element.href = url;
+            element.download= "upraveno.kxx";
+
+            $(element).text("Stáhnout");
+            $("body").append($(element));
+            
+          });
+        });
+        
+      });
+    </script>
+
+  </head>
+
+  <body>
+    <div id="header">
+      <header>
+        <div class="container">
+
+          <h1>CityVizor KXX Cleaner</h1>
+
+          <a href="https://cityvizor.cz" class="btn float-right hidden-print">
+            <i class="fa fa-chevron-circle-right"></i>
+            Přejít na cityvizor
+          </a>
+
+        </div>
+      </header>
+
+
+
+    </div>
+
+    <div class="container">		
+      <div id="page" class="">     
+        <form>
+          <input type="file" id="fileInput">
+
+          <button type="submit">Vyčistit</button>
+        </form>
+
+      </div>
+    </div>
+
+
+  </body>
+
+</html>
