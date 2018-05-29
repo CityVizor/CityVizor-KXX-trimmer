@@ -4,13 +4,10 @@
   <head>
     <meta charset="UTF-8">
     <base href="/kxx-cleaner/">
-    
-    <title>KXX Cleaner :: cityvizor.cz</title>
-    
-    <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <link rel="stylesheet" href="assets/css/style.css">
-    <script src="assets/js/kxxcleaner.js"></script>
+    <title>KXX Cleaner :: cityvizor.cz</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <!-- jQuery 3.3.1 -->
     <script src="assets/lib/jquery/jquery-3.3.1.min.js"></script>
@@ -19,41 +16,91 @@
     <link rel="stylesheet" href="assets/lib/bootstrap/css/bootstrap.min.css">
     <script src="assets/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
 
+    <!-- CUSTOM -->
+    <link rel="stylesheet" href="assets/css/style.css">
+    <script src="assets/js/kxxcleaner.js"></script>
+
     <!-- KXX trimmer -->
     <script type="text/javascript">
 
-
       $(document).ready(function(){
 
-        var kxxCleaner = new KXXCleaner();
+        $("#showInvoices").on("click", function(){
+
+          if($(this).is(":checked")){
+            $("#log div").hide();
+            $("#log div").filter('.KDF, .KOF').show();
+          }
+          else{
+            $("#log div").show();
+          }
+
+        });
+
+
 
         var form = $("form").first();
 
         form.submit(function(e){
-          
+
+          var encoding = $("#encodingInput").val();
+          var lineEnd = "\n";
+
+          var kxxCleaner = new KXXCleaner(encoding,lineEnd);
+
           e.preventDefault();
           
-          var file = $("#fileInput")[0].files[0];
+          $("#status").text("Konverze běží, čekejte...");
           
-          kxxCleaner.clean(file,function(data){
-            console.log(data.length);
+          var recordCount = 0;
+          var invoiceCount = 0;
 
-            console.log("downloading..");
+          $("#invoices").html("");
+          $("#recordCount").text(recordCount);
+          $("#invoiceCount").text(invoiceCount);
+
+          var file = $("#fileInput")[0].files[0];
+
+          kxxCleaner.error = function(err){ console.error(err); }
+          
+          kxxCleaner.log = function(recordLog){
+            
+            recordCount++;
+            $("#recordCount").text(recordCount);
+
+            if(recordLog.module === "KDF" || recordLog.module === "KOF"){
+
+              var logP = $("<div/>").addClass(recordLog.module);
+              logP.append("<strong>Záznam č. " + recordLog.id + " (" + recordLog.module + ")</strong>");
+
+              if(recordLog.text) logP.append("<p>" + recordLog.text[0] + "<del>" + recordLog.text[1] + "</del></p>");
+
+              recordLog.comments.forEach(function(comment) {logP.append("<p>" + comment[0] + "<del>" + comment[1] + "</del></p>");});
+
+              $("#invoices").append(logP);
+              
+              invoiceCount++;
+              $("#invoiceCount").text(invoiceCount);
+            }
+          }
+
+          kxxCleaner.clean(file,function(data){
+            
+            $("#status").text("Dokončeno.");
 
             let element = document.createElement('a');
 
             let blob = new Blob([data], {type:'text/plain;charset:WIN-1250',encoding:"win-1250"});
             let url = window.URL.createObjectURL(blob);
 
+            $("#download").get()[0].download= "upraveno.kxx";
             element.href = url;
-            element.download= "upraveno.kxx";
 
-            $(element).text("Stáhnout");
-            $("body").append($(element));
-            
+            $("#download").attr("href",url);
+
           });
         });
-        
+
       });
     </script>
 
@@ -66,11 +113,6 @@
 
           <h1>CityVizor KXX Cleaner</h1>
 
-          <a href="https://cityvizor.cz" class="btn float-right hidden-print">
-            <i class="fa fa-chevron-circle-right"></i>
-            Přejít na cityvizor
-          </a>
-
         </div>
       </header>
 
@@ -78,13 +120,48 @@
 
     </div>
 
-    <div class="container">		
-      <div id="page" class="">     
-        <form>
-          <input type="file" id="fileInput">
+    <div id="page">   
+      <div class="container">		
+        <div class="row">
+          <div class="col-4" id="form">
 
-          <button type="submit">Vyčistit</button>
-        </form>
+            <form class="form">
+              <h2>Načtěte soubor KXX</h2>
+
+              <div class="form-group">
+                <label for="fileInput">Soubor KXX</label>
+                <input type="file" class="form-control" id="fileInput">
+              </div>
+
+              <div class="form-group">
+                <label for="encodingInput">Kódování</label>
+                <select class="form-control" id="encodingInput">
+                  <option>windows-1250</option>
+                  <option>utf-8</option>
+                  <option>iso-8859</option>
+                </select>
+              </div>
+
+              <h2>Spusťte čištění</h2>
+              <button type="submit">Vyčistit</button>
+            </form>
+
+            <h2>Stáhněte výsledek</h2>
+            <a id="download">Stáhnout soubor</a>
+
+          </div>
+          <div class="col-8" id="log">
+
+            <h2>Průběh procesu</h2>
+            <p>Stav: <span id="status">Nezahájeno.</span></p>
+            <p>Zpracováno záznamů: <span id="recordCount">0</span></p>
+            <p>Zpracováno faktur: <span id="invoiceCount">0</span></p>
+            <h3>Faktury</h3>
+            <div class="well" id="invoices">
+            </div>
+
+          </div>
+        </div>
 
       </div>
     </div>
