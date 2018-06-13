@@ -83,7 +83,7 @@ KXXRecord.prototype.serialize = function(lineEnd){
   });
 
   if(this.text){
-    output += "G/#0001" + this.id + this.text + lineEnd;
+    output += "G/#0001" + this.id + this.text.trim() + lineEnd;
   }
 
   this.globalComments.forEach(function(commentData,i){
@@ -106,8 +106,9 @@ KXXRecord.prototype.serialize = function(lineEnd){
 var KXXCleaner = function(encoding,lineEnd){
 
   this.regRecordId = /^G\/([@\$#])\d{2}(\d{9})/;
+  this.regLineEnd = /[\r\n]+/;
 
-  this.lineEnd = lineEnd || "\r\n";
+  this.lineEnd = lineEnd || null;
   this.encoding = encoding || "windows-1250";
 
   this.chunkSize = 1024 * 1024;// * 50; // 50 MB  
@@ -152,15 +153,22 @@ KXXCleaner.prototype.loadChunk = function(){
 }
 
 KXXCleaner.prototype.processChunk = function(){
-
+  
   // is last chunk? (because of UTF)
   var lastChunk = (this.chunkEnd >= this.file.size);
 
   // join with start of last string from last load
   this.chunkBuffer += this.td.decode(this.fr.result,{ stream: !lastChunk });
+  
+  // detect line ending if not yet detected
+  if(!this.lineEnd){
+    let matches = this.regLineEnd.exec(this.chunkBuffer);
+    if(matches) this.lineEnd = matches[0];
+    else throw new Error("Can't detect line endings");
+  }
 
   // splitinto lines
-  let chunkLines = this.chunkBuffer.split(/\r?\n/);
+  let chunkLines = this.chunkBuffer.split(this.lineEnd);
 
   // get the start of last line to the buffer
   if(!lastChunk) this.chunkBuffer = chunkLines.pop();
@@ -248,3 +256,5 @@ KXXCleaner.prototype.processRecord = function(record){
   this.output += record.serialize(this.lineEnd);
 
 }
+
+module.exports = KXXCleaner;

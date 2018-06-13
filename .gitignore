@@ -1,5 +1,1 @@
-dist
-build
-__pycache__
-
-wizard.spec
+node_modules
